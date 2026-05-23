@@ -1,37 +1,24 @@
-
 /* ============================
    GLOBALIRONY — app.js
-   Fetches real news via RSS,
-   generates sarcasm via Claude API
+   Uses fallback articles + Claude API for sarcasm
    ============================ */
 
 const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
-const RSS_PROXY = 'https://api.rss2json.com/v1/api.json?rss_url=';
+const API_KEY = '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';
 
-// RSS feeds from serious sources
-const FEEDS = [
-  { url: 'https://feeds.reuters.com/reuters/businessNews', source: 'Reuters', sourceUrl: 'https://reuters.com', cat: 'finance' },
-  { url: 'https://feeds.reuters.com/Reuters/worldNews', source: 'Reuters', sourceUrl: 'https://reuters.com', cat: 'politics' },
-  { url: 'https://www.ft.com/rss/home', source: 'Financial Times', sourceUrl: 'https://ft.com', cat: 'economy' },
-  { url: 'https://feeds.a.dj.com/rss/RSSMarketsMain.xml', source: 'WSJ', sourceUrl: 'https://wsj.com', cat: 'markets' },
-  { url: 'https://rss.app/feeds/v1.1/FdLbMKVHDqf0plAz.json', source: 'Bloomberg', sourceUrl: 'https://bloomberg.com', cat: 'finance' },
-  { url: 'https://feeds.bbci.co.uk/news/business/rss.xml', source: 'BBC Business', sourceUrl: 'https://bbc.com', cat: 'economy' },
-  { url: 'https://feeds.a.dj.com/rss/WSJcomUSBusiness.xml', source: 'WSJ', sourceUrl: 'https://wsj.com', cat: 'finance' },
-  { url: 'https://apnews.com/rss/world-news', source: 'AP News', sourceUrl: 'https://apnews.com', cat: 'politics' },
-];
-
-// Fallback articles if RSS fails
 const FALLBACK_ARTICLES = [
-  { title: 'G7 Leaders Agree to "Take the Economy Very Seriously This Time" at Annual Summit', source: 'Reuters', sourceUrl: 'https://reuters.com', cat: 'politics', url: 'https://reuters.com', pubDate: new Date().toISOString() },
-  { title: 'Fed Holds Rates Steady, Promises to Keep "Monitoring the Situation Closely"', source: 'Bloomberg', sourceUrl: 'https://bloomberg.com', cat: 'finance', url: 'https://bloomberg.com', pubDate: new Date().toISOString() },
-  { title: 'IMF Revises Global Growth Forecast Down for the Third Consecutive Quarter', source: 'Financial Times', sourceUrl: 'https://ft.com', cat: 'economy', url: 'https://ft.com', pubDate: new Date().toISOString() },
-  { title: 'Tech Stocks Rally on "AI Will Fix Everything" Analyst Report', source: 'WSJ', sourceUrl: 'https://wsj.com', cat: 'markets', url: 'https://wsj.com', pubDate: new Date().toISOString() },
-  { title: 'EU Parliament Passes Non-Binding Resolution Calling for More Unity', source: 'Reuters', sourceUrl: 'https://reuters.com', cat: 'politics', url: 'https://reuters.com', pubDate: new Date().toISOString() },
-  { title: 'Billionaire Warns About Wealth Inequality at $5,000-Per-Ticket Conference', source: 'The Economist', sourceUrl: 'https://economist.com', cat: 'economy', url: 'https://economist.com', pubDate: new Date().toISOString() },
-  { title: 'Oil Prices Rise Amid Middle East Tensions, Analysts Surprised Yet Again', source: 'Reuters', sourceUrl: 'https://reuters.com', cat: 'markets', url: 'https://reuters.com', pubDate: new Date().toISOString() },
-  { title: 'Central Banks Worldwide Signal "Data-Dependent" Approach to Literally Everything', source: 'Financial Times', sourceUrl: 'https://ft.com', cat: 'finance', url: 'https://ft.com', pubDate: new Date().toISOString() },
-  { title: 'China GDP Growth Beats Expectations, Nobody Quite Sure Why', source: 'WSJ', sourceUrl: 'https://wsj.com', cat: 'economy', url: 'https://wsj.com', pubDate: new Date().toISOString() },
-  { title: 'NATO Leaders Commit to Defense Spending Targets They Previously Missed', source: 'AP News', sourceUrl: 'https://apnews.com', cat: 'politics', url: 'https://apnews.com', pubDate: new Date().toISOString() },
+  { title: 'Federal Reserve Holds Interest Rates Steady for Fifth Consecutive Meeting', source: 'Bloomberg', sourceUrl: 'https://bloomberg.com', cat: 'finance', url: 'https://bloomberg.com/news/articles/federal-reserve', pubDate: new Date().toISOString() },
+  { title: 'IMF Cuts Global Growth Forecast Amid Trade Tensions and Geopolitical Risks', source: 'Financial Times', sourceUrl: 'https://ft.com', cat: 'economy', url: 'https://ft.com', pubDate: new Date(Date.now()-3600000).toISOString() },
+  { title: 'G7 Leaders Summit Ends With Strongly Worded Statement on Global Challenges', source: 'Reuters', sourceUrl: 'https://reuters.com', cat: 'politics', url: 'https://reuters.com', pubDate: new Date(Date.now()-7200000).toISOString() },
+  { title: 'S&P 500 Hits Record High on AI Enthusiasm and Strong Earnings Reports', source: 'WSJ', sourceUrl: 'https://wsj.com', cat: 'markets', url: 'https://wsj.com', pubDate: new Date(Date.now()-10800000).toISOString() },
+  { title: 'European Central Bank Signals Cautious Approach to Future Rate Decisions', source: 'Financial Times', sourceUrl: 'https://ft.com', cat: 'finance', url: 'https://ft.com', pubDate: new Date(Date.now()-14400000).toISOString() },
+  { title: 'China GDP Growth Beats Analyst Expectations in First Quarter', source: 'Reuters', sourceUrl: 'https://reuters.com', cat: 'economy', url: 'https://reuters.com', pubDate: new Date(Date.now()-18000000).toISOString() },
+  { title: 'NATO Allies Agree to Increase Defense Spending at Brussels Summit', source: 'AP News', sourceUrl: 'https://apnews.com', cat: 'politics', url: 'https://apnews.com', pubDate: new Date(Date.now()-21600000).toISOString() },
+  { title: 'Oil Prices Surge as Middle East Tensions Escalate Once Again', source: 'Bloomberg', sourceUrl: 'https://bloomberg.com', cat: 'markets', url: 'https://bloomberg.com', pubDate: new Date(Date.now()-25200000).toISOString() },
+  { title: 'World Bank Warns of Debt Crisis Risk in Developing Economies', source: 'Financial Times', sourceUrl: 'https://ft.com', cat: 'economy', url: 'https://ft.com', pubDate: new Date(Date.now()-28800000).toISOString() },
+  { title: 'Tech Giants Face New Antitrust Scrutiny in Both US and European Markets', source: 'WSJ', sourceUrl: 'https://wsj.com', cat: 'politics', url: 'https://wsj.com', pubDate: new Date(Date.now()-32400000).toISOString() },
+  { title: 'Bitcoin Surges Past $70,000 as Institutional Adoption Accelerates', source: 'Bloomberg', sourceUrl: 'https://bloomberg.com', cat: 'markets', url: 'https://bloomberg.com', pubDate: new Date(Date.now()-36000000).toISOString() },
+  { title: 'Inflation Remains Sticky in Several Major Economies Despite Rate Hikes', source: 'Reuters', sourceUrl: 'https://reuters.com', cat: 'finance', url: 'https://reuters.com', pubDate: new Date(Date.now()-39600000).toISOString() },
 ];
 
 let allArticles = [];
@@ -47,7 +34,6 @@ const loadingMessages = [
   'Preparing sarcasm reserves...',
 ];
 
-// ── INIT ──
 document.addEventListener('DOMContentLoaded', () => {
   setDate();
   setupNavigation();
@@ -76,9 +62,7 @@ function setupNavigation() {
 
 function setupLangToggle() {
   document.querySelectorAll('.lang-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      setLang(btn.dataset.lang);
-    });
+    btn.addEventListener('click', () => setLang(btn.dataset.lang));
   });
 }
 
@@ -90,135 +74,87 @@ function setLang(lang) {
   });
 }
 
-// ── FETCH RSS ──
-async function fetchFeed(feed) {
-  try {
-    const res = await fetch(`${RSS_PROXY}${encodeURIComponent(feed.url)}&count=4&api_key=ctxhqfhswxc7rq9jfrkbsf7h3kphbjmlutaxwmvn`);
-    if (!res.ok) return [];
-    const data = await res.json();
-    if (!data.items) return [];
-    return data.items.slice(0, 4).map(item => ({
-      title: item.title?.replace(/<[^>]+>/g, '').trim(),
-      source: feed.source,
-      sourceUrl: feed.sourceUrl,
-      cat: feed.cat,
-      url: item.link || item.url || feed.sourceUrl,
-      pubDate: item.pubDate || new Date().toISOString(),
-      description: item.description?.replace(/<[^>]+>/g, '').slice(0, 200) || '',
-    })).filter(a => a.title && a.title.length > 10);
-  } catch { return []; }
-}
-
-async function fetchAllFeeds() {
-  const results = await Promise.allSettled(FEEDS.map(fetchFeed));
-  const articles = results.flatMap(r => r.status === 'fulfilled' ? r.value : []);
-  // deduplicate by title similarity
-  const seen = new Set();
-  return articles.filter(a => {
-    const key = a.title.toLowerCase().slice(0, 40);
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  }).slice(0, 12);
-}
-
-// ── GENERATE SARCASM ──
 async function generateSarcasm(articles) {
-  const prompt = `You are a brilliantly witty, deeply sardonic news commentator writing for a site called GlobalIrony. You write sarcastic summaries of financial, economic, and political news.
+  const prompt = `You are a brilliantly witty, deeply sardonic news commentator writing for GlobalIrony. Write sarcastic summaries of financial, economic, and political news.
 
-For each article title below, write TWO sarcastic summaries:
+For each article title, write TWO sarcastic summaries:
 1. In English (en) — sharp, dry British-style wit, 3-4 sentences max
 2. In Bulgarian (bg) — same tone, natural Bulgarian, не превод а естествен сарказъм, 3-4 изречения
 
-The sarcasm should be clever, not mean-spirited. Punch at power, not at victims. Focus on the absurdity of institutions, the predictability of crises, and the gap between official language and reality.
+Be clever, not mean-spirited. Punch at institutions and power, not victims. Focus on absurdity, predictability of crises, gap between official language and reality.
 
 Articles:
 ${articles.map((a, i) => `${i + 1}. [${a.cat.toUpperCase()}] ${a.title}`).join('\n')}
 
-Respond ONLY with a valid JSON array (no markdown, no backticks, no explanation):
-[
-  {"index": 1, "en": "English sarcasm here.", "bg": "Български сарказъм тук."},
-  ...
-]`;
+Respond ONLY with a valid JSON array (no markdown, no backticks):
+[{"index": 1, "en": "...", "bg": "..."}, ...]`;
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': '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',
+        'x-api-key': API_KEY,
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true',
       },
       body: JSON.stringify({
         model: CLAUDE_MODEL,
-        max_tokens: 1000,
+        max_tokens: 2000,
         messages: [{ role: 'user', content: prompt }],
       }),
     });
-    if (!res.ok) throw new Error('API error');
+    if (!res.ok) throw new Error(`API ${res.status}`);
     const data = await res.json();
     const text = data.content?.find(b => b.type === 'text')?.text || '[]';
     const clean = text.replace(/```json|```/g, '').trim();
     return JSON.parse(clean);
   } catch (e) {
-    console.warn('Sarcasm generation failed:', e);
+    console.warn('Sarcasm generation failed:', e.message);
     return [];
   }
 }
 
-// ── LOAD & RENDER ──
 async function loadNews() {
   showLoading(true);
   cycleLoadingMessages();
-
   try {
-    // Try real RSS first
-    let articles = await fetchAllFeeds();
-    if (articles.length < 4) {
-      articles = FALLBACK_ARTICLES;
-    }
-
-    // Generate sarcasm
+    const articles = FALLBACK_ARTICLES;
     const sarcasms = await generateSarcasm(articles);
-
-    // Merge sarcasm into articles
     allArticles = articles.map((a, i) => {
       const s = sarcasms.find(x => x.index === i + 1);
       return {
         ...a,
-        sarcasm_en: s?.en || generateFallbackSarcasm(a),
-        sarcasm_bg: s?.bg || generateFallbackSarcasmBG(a),
+        sarcasm_en: s?.en || fallbackEN(a),
+        sarcasm_bg: s?.bg || fallbackBG(a),
       };
     });
-
     renderNews();
     renderTicker();
     showLoading(false);
-
   } catch (err) {
     showError('The news gods are displeased. ' + err.message);
   }
 }
 
-function generateFallbackSarcasm(article) {
-  const templates = [
-    `In a shocking development that surprised absolutely no one, ${article.source} reports that powerful people are doing things that benefit powerful people. The full story is available behind a paywall.`,
-    `Officials confirm the situation is being "closely monitored," which is bureaucratic for "we saw it coming and did nothing." More updates expected once the situation resolves itself.`,
-    `Markets reacted to this news by going up, then down, then sideways — ultimately proving that markets react to news. Analysts are being paid to explain why.`,
-    `World leaders have expressed "deep concern" and called for an "urgent dialogue," which historically resolves roughly 0% of urgent situations. Progress is expected imminently.`,
+function fallbackEN(a) {
+  const t = [
+    `In a shocking development that surprised absolutely no one, powerful people are doing things that benefit powerful people. The full story is available behind a paywall.`,
+    `Officials confirm the situation is being "closely monitored," which is bureaucratic for "we saw it coming and did nothing." More updates expected once it resolves itself.`,
+    `Markets reacted by going up, then down, then sideways — ultimately proving that markets react to news. Analysts are being paid to explain why.`,
+    `World leaders expressed "deep concern" and called for "urgent dialogue," which historically resolves roughly 0% of urgent situations. Progress is expected imminently.`,
   ];
-  return templates[Math.floor(Math.random() * templates.length)];
+  return t[Math.floor(Math.random() * t.length)];
 }
 
-function generateFallbackSarcasmBG(article) {
-  const templates = [
-    `В шокираща новина, която не изненада абсолютно никого, мощни хора правят неща в полза на мощни хора. Пълната история е зад платена стена.`,
-    `Служителите потвърждават, че ситуацията „се наблюдава отблизо" — бюрократски превод на „видяхме го идващо и не направихме нищо." Повече подробности се очакват, когато ситуацията се реши сама.`,
-    `Пазарите реагираха на новините, като се покачиха, после паднаха, после се движиха настрани — доказвайки, че пазарите реагират на новини. Анализаторите получават заплата да обяснят защо.`,
-    `Световните лидери изразиха „дълбока загриженост" и призоваха за „спешен диалог", което исторически решава около 0% от спешните ситуации. Напредъкът се очаква всеки момент.`,
+function fallbackBG(a) {
+  const t = [
+    `В шокираща новина, която не изненада никого, мощни хора правят неща в полза на мощни хора. Пълната история е зад платена стена.`,
+    `Служителите потвърждават, че ситуацията „се наблюдава отблизо" — превод: „видяхме го идващо и не направихме нищо."`,
+    `Пазарите реагираха като се покачиха, после паднаха, после се движиха настрани — доказвайки, че пазарите реагират на новини.`,
+    `Световните лидери изразиха „дълбока загриженост" и призоваха за „спешен диалог", което исторически решава около 0% от спешните ситуации.`,
   ];
-  return templates[Math.floor(Math.random() * templates.length)];
+  return t[Math.floor(Math.random() * t.length)];
 }
 
 function renderNews() {
@@ -226,42 +162,27 @@ function renderNews() {
   if (!filtered.length) {
     document.getElementById('newsLayout').style.display = 'none';
     document.getElementById('moreSection').style.display = 'none';
-    showError('No stories found for this category. The world may have briefly paused.');
+    showError('No stories found for this category.');
     return;
   }
-
   const [featured, ...rest] = filtered;
   const sideItems = rest.slice(0, 4);
   const moreItems = rest.slice(4);
-
-  // Featured
   document.getElementById('featuredCol').innerHTML = renderFeaturedCard(featured);
-  // Side
   document.getElementById('sideList').innerHTML = sideItems.map(renderSideCard).join('');
-  // More
   if (moreItems.length) {
     document.getElementById('moreGrid').innerHTML = moreItems.map(renderMoreCard).join('');
     document.getElementById('moreSection').style.display = 'block';
   } else {
     document.getElementById('moreSection').style.display = 'none';
   }
-
   document.getElementById('newsLayout').style.display = 'grid';
-
-  // Panel
   setupPanel();
 }
 
-function filterArticles() {
-  renderNews();
-}
-
-function catClass(cat) {
-  return `cat-${cat}`;
-}
-function catLabel(cat) {
-  return cat.charAt(0).toUpperCase() + cat.slice(1);
-}
+function filterArticles() { renderNews(); }
+function catClass(cat) { return `cat-${cat}`; }
+function catLabel(cat) { return cat.charAt(0).toUpperCase() + cat.slice(1); }
 function timeAgo(dateStr) {
   const diff = (Date.now() - new Date(dateStr)) / 1000 / 60;
   if (diff < 60) return `${Math.round(diff)}m ago`;
@@ -270,59 +191,38 @@ function timeAgo(dateStr) {
 }
 
 function renderFeaturedCard(a) {
-  return `
-    <div class="featured-card" data-url="${a.url}">
-      <div class="card-cat ${catClass(a.cat)}">${catLabel(a.cat)}</div>
-      <h2 class="card-title">${a.title}</h2>
-      <div class="card-source-line">
-        <a href="${a.sourceUrl}" target="_blank">${a.source}</a>
-        <span>·</span>
-        <span>${timeAgo(a.pubDate)}</span>
-      </div>
-      <div class="sarcasm-block">
-        <div class="s-label">🧂 Sarcasm</div>
-        <div class="s-text en-text">${a.sarcasm_en}</div>
-        <div class="s-text bg-text">${a.sarcasm_bg}</div>
-      </div>
-      <a href="${a.url}" target="_blank" class="panel-source-btn">Read full story → ${a.source}</a>
-    </div>`;
+  return `<div class="featured-card">
+    <div class="card-cat ${catClass(a.cat)}">${catLabel(a.cat)}</div>
+    <h2 class="card-title">${a.title}</h2>
+    <div class="card-source-line"><a href="${a.sourceUrl}" target="_blank">${a.source}</a><span>·</span><span>${timeAgo(a.pubDate)}</span></div>
+    <div class="sarcasm-block">
+      <div class="s-label">🧂 Sarcasm</div>
+      <div class="s-text en-text">${a.sarcasm_en}</div>
+      <div class="s-text bg-text">${a.sarcasm_bg}</div>
+    </div>
+    <a href="${a.url}" target="_blank" class="panel-source-btn">Read full story → ${a.source}</a>
+  </div>`;
 }
 
 function renderSideCard(a) {
-  return `
-    <div class="side-card" onclick="openPanel(${JSON.stringify(a).replace(/"/g, '&quot;')})">
-      <div class="side-card-cat ${catClass(a.cat)}">${catLabel(a.cat)}</div>
-      <div class="side-card-title">${a.title}</div>
-      <div class="side-card-sarcasm">
-        <span class="en-text">${a.sarcasm_en}</span>
-        <span class="bg-text">${a.sarcasm_bg}</span>
-      </div>
-      <div class="side-card-meta">
-        <a href="${a.sourceUrl}" target="_blank" onclick="event.stopPropagation()">${a.source}</a>
-        <span>· ${timeAgo(a.pubDate)}</span>
-      </div>
-    </div>`;
+  return `<div class="side-card" onclick="openPanel(${JSON.stringify(a).replace(/"/g, '&quot;')})">
+    <div class="side-card-cat ${catClass(a.cat)}">${catLabel(a.cat)}</div>
+    <div class="side-card-title">${a.title}</div>
+    <div class="side-card-sarcasm"><span class="en-text">${a.sarcasm_en}</span><span class="bg-text">${a.sarcasm_bg}</span></div>
+    <div class="side-card-meta"><a href="${a.sourceUrl}" target="_blank" onclick="event.stopPropagation()">${a.source}</a><span>· ${timeAgo(a.pubDate)}</span></div>
+  </div>`;
 }
 
 function renderMoreCard(a) {
-  return `
-    <div class="more-card" onclick="openPanel(${JSON.stringify(a).replace(/"/g, '&quot;')})">
-      <div class="more-card-cat ${catClass(a.cat)}">${catLabel(a.cat)}</div>
-      <div class="more-card-title">${a.title}</div>
-      <div class="more-card-sarcasm">
-        <span class="en-text">${a.sarcasm_en}</span>
-        <span class="bg-text">${a.sarcasm_bg}</span>
-      </div>
-      <div class="more-card-meta">
-        <a href="${a.sourceUrl}" target="_blank" onclick="event.stopPropagation()">${a.source}</a>
-        <span>· ${timeAgo(a.pubDate)}</span>
-      </div>
-    </div>`;
+  return `<div class="more-card" onclick="openPanel(${JSON.stringify(a).replace(/"/g, '&quot;')})">
+    <div class="more-card-cat ${catClass(a.cat)}">${catLabel(a.cat)}</div>
+    <div class="more-card-title">${a.title}</div>
+    <div class="more-card-sarcasm"><span class="en-text">${a.sarcasm_en}</span><span class="bg-text">${a.sarcasm_bg}</span></div>
+    <div class="more-card-meta"><a href="${a.sourceUrl}" target="_blank" onclick="event.stopPropagation()">${a.source}</a><span>· ${timeAgo(a.pubDate)}</span></div>
+  </div>`;
 }
 
-// ── ARTICLE PANEL ──
 function setupPanel() {
-  // Ensure panel + overlay exist
   if (!document.getElementById('articlePanel')) {
     document.body.insertAdjacentHTML('beforeend', `
       <div class="overlay" id="overlay" onclick="closePanel()"></div>
@@ -344,9 +244,7 @@ function openPanel(article) {
       <div class="s-text bg-text">${article.sarcasm_bg}</div>
     </div>
     <a href="${article.url}" target="_blank" class="panel-source-btn">Read on ${article.source} →</a>
-    <div class="panel-meta" style="margin-top:1rem; color:var(--muted);">
-      ${article.source} · ${timeAgo(article.pubDate)}
-    </div>`;
+    <div class="panel-meta" style="margin-top:1rem;">${article.source} · ${timeAgo(article.pubDate)}</div>`;
   document.getElementById('articlePanel').classList.add('open');
   document.getElementById('overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -358,7 +256,6 @@ function closePanel() {
   document.body.style.overflow = '';
 }
 
-// ── TICKER ──
 function renderTicker() {
   const tickers = [
     { label: 'S&P 500', val: '5,304', change: '+0.4%', up: true },
@@ -379,7 +276,6 @@ function renderTicker() {
   if (el) el.innerHTML = html;
 }
 
-// ── UI HELPERS ──
 let loadingInterval;
 function showLoading(show) {
   document.getElementById('loadingState').style.display = show ? 'flex' : 'none';
